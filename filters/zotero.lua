@@ -1,10 +1,20 @@
 
+<<<<<<< HEAD
 print('zotero-live-citations 199d652')
 local online, mt, latest = pcall(pandoc.mediabag.fetch, 'https://retorque.re/zotero-better-bibtex/exporting/zotero.lua.revision')
 if online then
   latest = string.sub(latest, 1, 10)
   if '199d652' ~= latest then
 	print('new version "' .. latest .. '" available at https://retorque.re/zotero-better-bibtex/exporting')
+=======
+  print('zotero-live-citations 199d652')
+  local online, mt, latest = pcall(pandoc.mediabag.fetch, 'https://retorque.re/zotero-better-bibtex/exporting/zotero.lua.revision')
+  if online then
+    latest = string.sub(latest, 1, 10)
+    if '199d652' ~= latest then
+      print('new version "' .. latest .. '" available at https://retorque.re/zotero-better-bibtex/exporting')
+    end
+>>>>>>> 8465868 (updated zotero.lua filter)
   end
 end
 
@@ -1840,7 +1850,26 @@ end
 return html
 end
 
+function stringify(node)
+  local html = pandoc.write(pandoc.Pandoc({ node }), 'html')
+    :gsub('\n', ' ')
+    :gsub('<u>', '<i>')
+    :gsub('</u>', '</i>')
+    :gsub('<em>', '<i>')
+    :gsub('</em>', '</i>')
+    :gsub('<strong>', '<b>')
+    :gsub('</strong>', '</b>')
+    :gsub('<span class="smallcaps">', '<span style="font-variant:small-caps;">')
+    :gsub('<p>', '')
+    :gsub('</p>', '')
+  if pandoc.utils.stringify(node):match('^%s') then
+    html = ' ' .. html
+  end
+  return html
+end
+
 local function zotero_ref(cite)
+<<<<<<< HEAD
 local content = stringify(cite.content)
 local csl = {
   citationID = utils.next_id(8),
@@ -1861,6 +1890,79 @@ for k, item in pairs(cite.citations) do
   local itemData = zotero.get(item.id)
   if itemData == nil then
 	notfound = true
+=======
+  local content = stringify(cite.content)
+  local csl = {
+    citationID = utils.next_id(8),
+    properties = {
+      unsorted = not config.sorted,
+      formattedCitation = content,
+      plainCitation = nil, -- otherwise we get a barrage of "you have edited this citation" popups
+      -- dontUpdate = false,
+      noteIndex = 0
+    },
+    citationItems = {},
+    schema = "https://github.com/citation-style-language/schema/raw/master/csl-citation.json"
+  }
+  local author_in_text = ''
+
+  notfound = false
+  for k, item in pairs(cite.citations) do
+    local itemData = zotero.get(item.id)
+    if itemData == nil then
+      notfound = true
+    else
+
+      local citation = {
+        id = itemData.custom.itemID,
+        uris = { itemData.custom.uri },
+        -- uri = { zoteroData.uri },
+        itemData = clean_csl(itemData),
+      }
+
+      if item.mode == 'AuthorInText' then -- not formally supported in Zotero
+        if config.author_in_text then
+          local authors = itemData.custom.author
+          if authors == nil or authors == '' then
+            return cite
+          else
+            author_in_text = pandoc.utils.stringify(pandoc.Str(authors)) .. ' '
+            author_in_text = '<w:r><w:t xml:space="preserve">' .. utils.xmlescape(author_in_text) .. '</w:t></w:r>'
+            citation['suppress-author'] = true
+          end
+        else
+          return cite
+        end
+      end
+
+      if item.mode == 'SuppressAuthor' then
+        citation['suppress-author'] = true
+      end
+      citation.prefix = stringify(item.prefix):gsub('\194\160', ' ')
+      local label, locator, suffix = csl_locator.parse(stringify(item.suffix):gsub('\194\160', ' '))
+      if suffix and suffix ~= '' then citation.suffix = suffix end
+      if label and label ~= '' then citation.label = label end
+      if locator and locator ~= '' then citation.locator = locator end
+
+      table.insert(csl.citationItems, citation)
+    end
+  end
+
+  if notfound then
+    return cite
+  end
+
+  local message = '<Do Zotero Refresh: ' .. content .. '>'
+
+  if config.format == 'docx' then
+    local field = author_in_text .. '<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve">'
+    field = field .. ' ADDIN ZOTERO_ITEM CSL_CITATION ' .. utils.xmlescape(json.encode(csl)) .. '   '
+    field = field .. '</w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t>'
+    field = field .. utils.xmlescape(message)
+    field = field .. '</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>'
+
+    return pandoc.RawInline('openxml', field)
+>>>>>>> 8465868 (updated zotero.lua filter)
   else
 
 	local citation = {
@@ -1911,6 +2013,7 @@ if config.format == 'docx' then
   field = field .. utils.xmlescape(message)
   field = field .. '</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>'
 
+<<<<<<< HEAD
   return pandoc.RawInline('openxml', field)
 else
   if config.transferable then
@@ -1920,6 +2023,39 @@ else
 	  .. utils.xmlescape(json.encode(csl))
 	  .. '</text:a>'
 	return pandoc.RawInline('opendocument', field)
+=======
+    local shortlabel = {
+      book = 'bk.',
+      chapter = 'chap.',
+      column = 'col.',
+      figure = 'fig.',
+      folio = 'fol.',
+      number = 'no.',
+      line = 'l.',
+      note = 'n.',
+      opus = 'op.',
+      page = 'p.',
+      paragraph = 'para.',
+      part = 'pt.',
+      section = 'sec.',
+      ['sub verbo'] = 's.v.',
+      verse = 'v.',
+      volume = 'vol.',
+    }
+    local label, locator, suffix = csl_locator.parse(stringify(item.suffix))
+    if label then
+      locator = shortlabel[label] .. ' ' .. locator
+    else
+      locator = ''
+    end
+
+    citations = citations ..
+      '{ ' .. (stringify(item.prefix) or '') ..
+      ' | ' .. suppress .. utils.trim(string.gsub(stringify(cite.content) or '', '[|{}]', '')) ..
+      ' | ' .. locator ..
+      ' | ' .. (suffix or '') ..
+      ' | ' .. (ug == 'groups' and 'zg:' or 'zu:') .. id .. ':' .. key .. ' }'
+>>>>>>> 8465868 (updated zotero.lua filter)
   end
 
   csl = 'ZOTERO_ITEM CSL_CITATION ' .. utils.xmlattr(json.encode(csl)) .. ' RND' .. utils.next_id(10)
