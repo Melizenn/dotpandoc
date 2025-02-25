@@ -361,6 +361,7 @@ templates:
         - filters/pagebreak.lua # use \newpage{} also for HTML, DOCX, ODT & EPUB
         - filters/abstract-section.lua # move an abstract heading to metadata
         - filters/pretty-urls.lua # clean up URLs a bit
+        - filters/citation-backlinks.lua # trying to make backlinks: https://github.com/bcdavasconcelos/citation-backlinks
       template: templates/custom.latex
     metadata:
       documentclass: 'article'
