@@ -1,5 +1,5 @@
 --- citation-backlinks.lua – adds citation backlinks to the bibliography
----
+--- GitHub: https://github.com/bcdavasconcelos/citation-backlinks
 --- Copyright: © 2022 John MacFarlane and Albert Krewinkel
 --- License: MIT – see LICENSE for details
 
@@ -50,7 +50,7 @@ end
 function Div(el)
   local citation_id = el.identifier:match("ref%-(.+)")
   if citation_id then
-    local backlinks = pandoc.Inlines{pandoc.Str("Cited:"),pandoc.Space()}
+    local backlinks = pandoc.Inlines{pandoc.Str(". Cited p."),pandoc.Space()}
     for i,cite_id in ipairs(cites[citation_id] or {}) do
       local marker = pandoc.Str(i)
       if FORMAT == "latex" then
